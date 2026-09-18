@@ -741,10 +741,14 @@
       cancelAnimationFrame(trailsFrameId);
       trailsFrameId = null;
     }
+    var heroContainer = document.getElementById('hero-webgl-container');
+    if(heroContainer){ heroContainer.style.opacity = '0'; }
   };
 
   window.heroParticlesResume = function(){
     heroPaused = false;
+    var heroContainer = document.getElementById('hero-webgl-container');
+    if(heroContainer){ heroContainer.style.opacity = '1'; }
     if(!heroLoopRunning){ renderHero(); }
     if(!trailsLoopRunning){ renderTrails(); }
   };

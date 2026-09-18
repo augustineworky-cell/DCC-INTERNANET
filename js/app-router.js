@@ -772,6 +772,9 @@
   function showHome(){
     activeTabId = null;
     homeQuoteRotator.stop();
+    if(window.tabThemeOnHome){
+      window.tabThemeOnHome();
+    }
     transitionToView('home', function(){
       homeView.style.display = '';
       appView.style.display = 'none';
@@ -795,6 +798,9 @@
     activeTabId = tab.id;
     appTitle.textContent = tab.label;
     homeQuoteRotator.stop();
+    if(window.tabThemeOnSwitch){
+      window.tabThemeOnSwitch(tab.table);
+    }
 
     transitionToView('app', function(){
       homeView.style.display = 'none';

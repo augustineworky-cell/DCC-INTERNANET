@@ -167,7 +167,11 @@
     var theme = TABLE_THEMES[table];
     if(!theme || table === currentTable){
       container.style.opacity = reduceMotion ? '0.7' : '1';
-      if(isDashboardVisible()){ startRendering(); }
+      if(reduceMotion){
+        stopRendering();
+      }else if(isDashboardVisible()){
+        startRendering();
+      }
       return;
     }
 

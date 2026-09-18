@@ -772,9 +772,6 @@
   function showHome(){
     activeTabId = null;
     homeQuoteRotator.stop();
-    if(window.tabThemeOnHome){
-      window.tabThemeOnHome();
-    }
     if(window.heroParticlesResume){
       window.heroParticlesResume();
     }
@@ -801,9 +798,6 @@
     activeTabId = tab.id;
     appTitle.textContent = tab.label;
     homeQuoteRotator.stop();
-    if(window.tabThemeOnSwitch){
-      window.tabThemeOnSwitch(tab.table);
-    }
     if(window.heroParticlesPause){
       window.heroParticlesPause();
     }

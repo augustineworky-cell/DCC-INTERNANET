@@ -386,16 +386,6 @@
 
   footer{ border-top:1px solid var(--line); padding:26px 24px; display:flex; justify-content:space-between; align-items:center; font-size:12.5px; color:var(--text-faint); flex-wrap:wrap; gap:8px; position:relative; z-index:2; }
 
-  #tab-theme-canvas{
-    position:fixed;
-    inset:0;
-    z-index:0;
-    pointer-events:none;
-    opacity:0;
-    transition:opacity .35s ease;
-  }
-  #tab-theme-canvas canvas{ display:block; width:100%; height:100%; }
-
   /* ============ TOP NAV DROPDOWNS + INLINE APP VIEW ============ */
   .nav-links{ position:relative; }
   .nav-item{

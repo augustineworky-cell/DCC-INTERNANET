@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DCC Supply Chain and Distribution</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- External Libraries (CDNJS as specified) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div id="hero-webgl-container"></div>
+<div id="yt-host"></div>
+
+<!-- BACKGROUND MUSIC -->
+<button class="music-fab" id="music-fab" aria-label="Background music" aria-expanded="false">
+  <span class="eq"></span>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+    <path d="M4 14v-2a8 8 0 0116 0v2"/>
+    <path d="M4 14h2a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM20 14h-2a1 1 0 00-1 1v3a1 1 0 001 1h1a1 1 0 001-1v-4z" fill="currentColor" stroke="none"/>
+  </svg>
+</button>
+
+<div class="music-panel" id="music-panel" role="dialog" aria-label="Background music">
+  <h4>Background music</h4>
+
+  <p class="sect-label">Your links</p>
+  <div class="track-list" id="track-list"></div>
+
+  <div class="music-row">
+    <button class="toggle-btn" id="music-toggle" aria-pressed="false">
+      <svg id="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M22 9l-6 6M16 9l6 6"/>
+      </svg>
+      <span id="toggle-label">Off</span>
+    </button>
+  </div>
+
+  <div class="music-row">
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 010 7"/>
+    </svg>
+    <input type="range" class="vol" id="volume" min="0" max="100" value="55" aria-label="Volume">
+  </div>
+
+  <div class="add-row">
+    <input type="text" id="music-url" placeholder="Paste YouTube or .mp3 link…" aria-label="Music link">
+    <button id="music-add">Add</button>
+  </div>
+
+  <p class="music-note" id="music-note">Plays only in your own browser tab — no one else hears this.</p>
+</div>
+
+<div class="search-panel" id="search-panel" role="dialog" aria-label="Search">
+  <input type="text" id="search-input" placeholder="Search sections, forms, sheets…" autocomplete="off">
+  <div class="search-results" id="search-results"></div>
+  <p class="search-empty" id="search-empty" style="display:none;">No matches.</p>
+</div>
+
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="brand" id="brand-home">DCC <span>supply chain</span></a>
+    <button class="nav-toggle" id="nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false">&#9776;</button>
+    <div class="nav-links" id="nav-links">
+      <div class="nav-item" data-menu="orders">Orders</div>
+      <div class="nav-item" data-menu="despatch">Dispatch</div>
+      <div class="nav-item" data-menu="payments">Payments</div>
+      <div class="nav-item" data-menu="stock">C and F stock</div>
+      <div class="nav-item" data-menu="systems">Systems</div>
+    </div>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button class="nav-cta search-fab" id="search-fab" aria-label="Search">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>
+        </svg>
+      </button>
+      <button class="nav-cta">Sign in</button>
+    </div>
+  </div>
+  <div class="mega-menu" id="mega-menu">
+    <div class="mega-inner" id="mega-inner"></div>
+  </div>
+  <div class="mobile-nav" id="mobile-nav" aria-hidden="true">
+    <div class="mobile-nav-sections" id="mobile-nav-sections"></div>
+  </div>
+</nav>
+
+<div id="home-view">
+<section class="hero wrap">
+  <canvas id="pcanvas" width="640" height="260" style="width:100%;max-width:480px;height:195px;"></canvas>
+  <div class="hero-stage" id="hero-stage">
+    <div class="hero-content" id="hero-content">
+      <h1>Every order, from Okhla to your ledger, without opening a spreadsheet</h1>
+      <p class="lede">DCC's ops system tracks orders, dispatch and payments live across Okhla, Gurgaon and Head office, in one place built for how the warehouse actually works.</p>
+      <div class="hero-ctas">
+        <button class="btn-primary" id="view-orders-btn">View live orders</button>
+        <button class="btn-secondary">See how it works</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="proof wrap">
+  <div class="proof-header">
+    <h2>Orders — Okhla</h2>
+    <span class="loc">Updated just now</span>
+  </div>
+  <div class="metrics">
+    <canvas class="metrics-canvas" id="metrics-canvas"></canvas>
+    <div class="metric"><p class="label">Open orders</p><p class="value" data-value="42">0</p></div>
+    <div class="metric"><p class="label">Dispatched today</p><p class="value" data-value="128">0</p></div>
+    <div class="metric warn"><p class="label">Pending payment</p><p class="value" data-value="7">0</p></div>
+  </div>
+  <table class="orders">
+    <tr><th>Order</th><th>Customer</th><th>Amount</th><th>Status</th></tr>
+    <tr><td>DDC-1042</td><td>Wow Momo</td><td>Rs 18,400</td><td><span class="status done">Dispatched</span></td></tr>
+    <tr><td>DDC-1043</td><td>Union Bank canteen</td><td>Rs 6,200</td><td><span class="status pend">Pending</span></td></tr>
+    <tr><td>DDC-1044</td><td>Tekhand market</td><td>Rs 11,900</td><td><span class="status due">Overdue</span></td></tr>
+  </table>
+</section>
+
+<section class="features wrap">
+  <h2>Built around three jobs, not thirty modules</h2>
+  <p class="sub">Everything else in the old intranet fed into these. So that's all this does, properly.</p>
+  <div class="feat-grid">
+    <div class="feat" data-icon-type="crate">
+      <div class="icon-wrapper">
+        <canvas class="feat-canvas"></canvas>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>
+      </div>
+      <h3>Order to dispatch</h3>
+      <p>Every order tracked from placement to the truck leaving the dock, with a status anyone can check without asking.</p>
+    </div>
+    <div class="feat" data-icon-type="coin">
+      <div class="icon-wrapper">
+        <canvas class="feat-canvas"></canvas>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5c0-1.4 1.3-2.5 3-2.5s3 1.1 3 2.5-1.3 2-3 2.5-3 1.1-3 2.5"/></svg>
+      </div>
+      <h3>Payment collection</h3>
+      <p>See what's paid, what's pending and what's overdue at a glance, by customer or by location.</p>
+    </div>
+    <div class="feat" data-icon-type="warehouse">
+      <div class="icon-wrapper">
+        <canvas class="feat-canvas"></canvas>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 21V9l9-6 9 6v12"/><path d="M9 21v-8h6v8"/></svg>
+      </div>
+      <h3>C and F stock</h3>
+      <p>Stock levels across Okhla, Gurgaon and Head office, updated as it moves rather than at month end.</p>
+    </div>
+  </div>
+</section>
+</div>
+
+<div id="app-view" style="display:none;">
+  <div class="wrap">
+    <div class="app-head">
+      <button class="app-back" id="app-back" aria-label="Back">&larr;</button>
+      <h2 id="app-title">Section</h2>
+    </div>
+    <div class="tabs-region">
+      <div class="tabs" id="sys-tabs"></div>
+    </div>
+    <div class="panels" id="sys-panels"></div>
+  </div>
+</div>
+
+<footer>
+  <span>DCC Supply Chain and Distribution</span>
+  <span>Okhla · Gurgaon · Head office</span>
+</footer>
+
+
+
+
+
+
+
+
+
+
+<script src="js/supabase-config.js"></script>
+<script src="js/music-player.js"></script>
+<script src="js/hero-particles.js"></script>
+<script src="js/nav-config.js"></script>
+<script src="js/app-router.js"></script>
+<script src="js/glass-cursor.js"></script>
+</body>
+</html>

@@ -19,6 +19,9 @@
   *{box-sizing:border-box;}
   body{
     margin:0;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
     background:var(--bg);
     color:var(--text);
     font-family:'Inter', sans-serif;
@@ -420,7 +423,7 @@
   .mega-link:hover{ color:var(--orange); border-color:var(--orange-dim); }
 
   /* app view replaces the hero/proof/features while a section is open */
-  #app-view{ position:relative; z-index:2; padding:28px 24px 80px; }
+  #app-view{ position:relative; z-index:2; flex:1; padding:28px 24px 80px; }
   .app-head{ display:flex; align-items:center; gap:14px; margin-bottom:20px; }
   .app-back{
     background:transparent; border:1px solid var(--line); color:var(--text-dim);

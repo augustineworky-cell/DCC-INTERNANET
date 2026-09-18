@@ -21,6 +21,7 @@
   var targetColor = new THREE.Color('#3b72b8');
 
   var TABLE_THEMES = {
+    home: { color:'#d8c7a1' },
     attendance: { color:'#54c9a4' },
     fms_systems: { color:'#3b72b8' },
     ims: { color:'#e6781e' },

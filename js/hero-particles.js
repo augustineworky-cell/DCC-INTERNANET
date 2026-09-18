@@ -1,4 +1,9 @@
 (function(){
+  var heroPaused = false;
+  var heroFrameId = null;
+  var trailsFrameId = null;
+  var heroLoopRunning = false;
+  var trailsLoopRunning = false;
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* FALLBACK FOR REDUCED MOTION */
@@ -585,7 +590,14 @@
   var clock = new THREE.Clock();
 
   function renderHero() {
-    requestAnimationFrame(renderHero);
+    if(heroPaused){
+      heroLoopRunning = false;
+      heroFrameId = null;
+      return;
+    }
+
+    heroLoopRunning = true;
+    heroFrameId = requestAnimationFrame(renderHero);
 
     var time = clock.getElapsedTime();
 
@@ -692,6 +704,13 @@
   }
 
   function renderTrails() {
+    if(heroPaused){
+      trailsLoopRunning = false;
+      trailsFrameId = null;
+      return;
+    }
+
+    trailsLoopRunning = true;
     mCtx.clearRect(0, 0, metricsCanvas.width, metricsCanvas.height);
     for (var i = trailParticles.length - 1; i >= 0; i--) {
       var p = trailParticles[i];
@@ -707,8 +726,29 @@
       mCtx.fillStyle = 'rgba(' + p.color + ',' + (p.life * 0.8) + ')';
       mCtx.fill();
     }
-    requestAnimationFrame(renderTrails);
+    trailsFrameId = requestAnimationFrame(renderTrails);
   }
+
+  window.heroParticlesPause = function(){
+    heroPaused = true;
+    heroLoopRunning = false;
+    trailsLoopRunning = false;
+    if(heroFrameId){
+      cancelAnimationFrame(heroFrameId);
+      heroFrameId = null;
+    }
+    if(trailsFrameId){
+      cancelAnimationFrame(trailsFrameId);
+      trailsFrameId = null;
+    }
+  };
+
+  window.heroParticlesResume = function(){
+    heroPaused = false;
+    if(!heroLoopRunning){ renderHero(); }
+    if(!trailsLoopRunning){ renderTrails(); }
+  };
+
   renderTrails();
 
   var countersAnimated = false;

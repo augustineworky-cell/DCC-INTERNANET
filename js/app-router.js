@@ -775,6 +775,9 @@
     if(window.tabThemeOnHome){
       window.tabThemeOnHome();
     }
+    if(window.heroParticlesResume){
+      window.heroParticlesResume();
+    }
     transitionToView('home', function(){
       homeView.style.display = '';
       appView.style.display = 'none';
@@ -800,6 +803,9 @@
     homeQuoteRotator.stop();
     if(window.tabThemeOnSwitch){
       window.tabThemeOnSwitch(tab.table);
+    }
+    if(window.heroParticlesPause){
+      window.heroParticlesPause();
     }
 
     transitionToView('app', function(){

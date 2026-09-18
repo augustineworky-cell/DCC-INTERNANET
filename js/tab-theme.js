@@ -10,14 +10,12 @@
   var camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
   camera.position.z = 10;
   var renderer = null;
-  var points = null;
-  var strands = null;
   var animationFrame = null;
   var running = false;
   var lastTime = 0;
   var resizeTimer = null;
   var currentTable = null;
-  var state = { speed:0.22, spread:1, opacity:0.14 };
+  var state = { speed:0.22, spread:1, opacity:0.42 };
   var targetColor = new THREE.Color('#3b72b8');
 
   var TABLE_THEMES = {
@@ -31,67 +29,77 @@
     human_resource: { color:'#e6b85c' }
   };
 
-  var particleCount = 1800;
-  var positions = new Float32Array(particleCount * 3);
-  var velocities = new Float32Array(particleCount * 3);
-  var linePositions = new Float32Array(particleCount * 6);
-  var geometry = new THREE.BufferGeometry();
-  var lineGeometry = new THREE.BufferGeometry();
+  var ribbonCount = 15;
+  var segmentCount = 28;
+  var ribbonRadius = 0.032;
+  var ribbonOpacityScale = 0.55;
+  var ribbons = [];
 
-  function createParticleTexture(){
-    var canvas = document.createElement('canvas');
-    canvas.width = 64;
-    canvas.height = 64;
-    var context = canvas.getContext('2d');
-    var gradient = context.createRadialGradient(32, 32, 0, 32, 32, 32);
-    gradient.addColorStop(0, 'rgba(255,255,255,0.95)');
-    gradient.addColorStop(0.35, 'rgba(255,255,255,0.65)');
-    gradient.addColorStop(1, 'rgba(255,255,255,0)');
-    context.fillStyle = gradient;
-    context.fillRect(0, 0, 64, 64);
-    return new THREE.CanvasTexture(canvas);
+  function createRibbonColor(index){
+    var color = targetColor.clone();
+    color.offsetHSL((index - ribbonCount / 2) * 0.012, 0.04, (index % 3) * 0.035);
+    return color;
   }
 
-  function resetParticle(index){
-    var i = index * 3;
-    positions[i] = (Math.random() - 0.5) * 12;
-    positions[i + 1] = (Math.random() - 0.5) * 8;
-    positions[i + 2] = (Math.random() - 0.5) * 8;
-    velocities[i] = (Math.random() - 0.5) * 0.012;
-    velocities[i + 1] = (Math.random() - 0.5) * 0.012;
-    velocities[i + 2] = (Math.random() - 0.5) * 0.008;
+  function ribbonPoints(ribbon, time){
+    var points = [];
+    var amplitude = 0.7 + state.spread * 0.24;
+    var drift = time * state.speed * 0.32;
+
+    for(var i = 0; i < segmentCount; i++){
+      var u = i / (segmentCount - 1);
+      var x = (u - 0.5) * 15;
+      var phase = ribbon.phase;
+      var y = Math.sin(u * 6.1 + phase + drift) * amplitude;
+      y += Math.sin(u * 3.1 - drift * 0.8 + phase * 0.6) * 0.8;
+      y += Math.cos(u * 12.5 + phase * 1.4 + drift * 0.35) * 0.16;
+      var z = -1.4 + Math.sin(u * 4.4 + phase + drift * 0.5) * 1.55;
+      z += Math.cos(u * 9.2 + phase) * 0.3;
+      x += Math.sin(u * 2.8 + phase + drift * 0.45) * 0.7;
+      points.push(new THREE.Vector3(x, y + ribbon.lift, z));
+    }
+
+    return points;
+  }
+
+  function buildRibbon(ribbon, time){
+    var curve = new THREE.CatmullRomCurve3(ribbonPoints(ribbon, time));
+    var geometry = new THREE.TubeGeometry(curve, segmentCount - 2, ribbonRadius, 3, false);
+    if(ribbon.mesh){
+      ribbon.mesh.geometry.dispose();
+      ribbon.mesh.geometry = geometry;
+    }else{
+      var material = new THREE.MeshBasicMaterial({
+        color:createRibbonColor(ribbon.index),
+        transparent:true,
+        opacity:state.opacity * ribbonOpacityScale,
+        depthWrite:false,
+        blending:THREE.AdditiveBlending
+      });
+      ribbon.mesh = new THREE.Mesh(geometry, material);
+      scene.add(ribbon.mesh);
+    }
   }
 
   function buildScene(){
-    for(var i = 0; i < particleCount; i++){
-      resetParticle(i);
+    for(var i = 0; i < ribbonCount; i++){
+      var ribbon = {
+        index:i,
+        phase:(i / ribbonCount) * Math.PI * 2,
+        lift:(i - ribbonCount / 2) * 0.055,
+        mesh:null
+      };
+      ribbons.push(ribbon);
+      buildRibbon(ribbon, 0);
     }
+  }
 
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    lineGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
-
-    var texture = createParticleTexture();
-    var material = new THREE.PointsMaterial({
-      color:targetColor,
-      size:0.09,
-      map:texture,
-      transparent:true,
-      opacity:state.opacity,
-      depthWrite:false,
-      blending:THREE.AdditiveBlending
+  function updateRibbonColors(){
+    ribbons.forEach(function(ribbon){
+      var color = createRibbonColor(ribbon.index);
+      ribbon.mesh.material.color.copy(color);
+      ribbon.mesh.material.opacity = state.opacity * ribbonOpacityScale;
     });
-    var lineMaterial = new THREE.LineBasicMaterial({
-      color:targetColor,
-      transparent:true,
-      opacity:state.opacity * 0.65,
-      depthWrite:false,
-      blending:THREE.AdditiveBlending
-    });
-
-    points = new THREE.Points(geometry, material);
-    strands = new THREE.LineSegments(lineGeometry, lineMaterial);
-    scene.add(points);
-    scene.add(strands);
   }
 
   function isDashboardVisible(){
@@ -107,40 +115,17 @@
 
     var elapsed = Math.min((time - lastTime) / 16.67, 3);
     lastTime = time;
-    var t = time * 0.00035;
-    var speed = state.speed * elapsed;
-    var trail = 0.09 + state.speed * 0.26;
+    var flowTime = time * 0.001 * (0.7 + state.speed) * elapsed;
 
-    for(var i = 0; i < particleCount; i++){
-      var p = i * 3;
-      var x = positions[p];
-      var y = positions[p + 1];
-      var z = positions[p + 2];
-      var curlX = Math.sin(y * 0.72 + t + z * 0.24) - Math.cos(z * 0.58 - t * 0.7);
-      var curlY = Math.sin(z * 0.64 - t * 0.8 + x * 0.18) - Math.cos(x * 0.42 + t);
-      var curlZ = Math.sin(x * 0.38 + y * 0.22 + t * 0.6) - Math.cos(y * 0.5 - t);
+    ribbons.forEach(function(ribbon){
+      ribbon.mesh.position.x = Math.sin(flowTime * 0.7 + ribbon.phase) * 0.8;
+      ribbon.mesh.position.y = Math.cos(flowTime * 0.55 + ribbon.phase) * 0.16;
+      ribbon.mesh.rotation.z = Math.sin(flowTime * 0.32 + ribbon.phase) * 0.08;
+      ribbon.mesh.rotation.y = Math.cos(flowTime * 0.28 + ribbon.phase) * 0.06;
+      ribbon.mesh.scale.y = 0.9 + state.spread * 0.08;
+      ribbon.mesh.material.opacity = state.opacity * ribbonOpacityScale;
+    });
 
-      velocities[p] = velocities[p] * 0.985 + curlX * 0.00018 * state.spread;
-      velocities[p + 1] = velocities[p + 1] * 0.985 + curlY * 0.00018 * state.spread;
-      velocities[p + 2] = velocities[p + 2] * 0.985 + curlZ * 0.00012 * state.spread;
-      positions[p] += velocities[p] * speed;
-      positions[p + 1] += velocities[p + 1] * speed;
-      positions[p + 2] += velocities[p + 2] * speed;
-
-      if(Math.abs(positions[p]) > 7 || Math.abs(positions[p + 1]) > 5 || Math.abs(positions[p + 2]) > 5){
-        resetParticle(i);
-      }
-
-      linePositions[i * 6] = positions[p];
-      linePositions[i * 6 + 1] = positions[p + 1];
-      linePositions[i * 6 + 2] = positions[p + 2];
-      linePositions[i * 6 + 3] = positions[p] - velocities[p] * trail;
-      linePositions[i * 6 + 4] = positions[p + 1] - velocities[p + 1] * trail;
-      linePositions[i * 6 + 5] = positions[p + 2] - velocities[p + 2] * trail;
-    }
-
-    geometry.attributes.position.needsUpdate = true;
-    lineGeometry.attributes.position.needsUpdate = true;
     renderer.render(scene, camera);
     animationFrame = requestAnimationFrame(renderFrame);
   }
@@ -161,7 +146,7 @@
   }
 
   function setStaticTheme(color){
-    container.style.background = 'radial-gradient(circle at 50% 45%, ' + color + '22, transparent 68%)';
+    container.style.background = 'radial-gradient(circle at 50% 45%, ' + color + '33, transparent 68%)';
   }
 
   function tabThemeOnSwitch(table){
@@ -180,6 +165,7 @@
     container.style.opacity = reduceMotion ? '0.7' : '1';
     targetColor.set(theme.color);
     setStaticTheme(theme.color);
+    updateRibbonColors();
 
     if(reduceMotion){
       stopRendering();
@@ -187,30 +173,28 @@
     }
 
     startRendering();
-    var burst = { speed:0.22, spread:1, opacity:0.14 };
+    var burst = { speed:0.22, spread:1, opacity:0.42 };
     gsap.to(burst, {
       speed:1.8,
       spread:3.2,
-      opacity:0.34,
+      opacity:0.72,
       duration:0.55,
       ease:'power2.out',
       onUpdate:function(){
         state.speed = burst.speed;
         state.spread = burst.spread;
         state.opacity = burst.opacity;
-        if(points){ points.material.color.lerp(targetColor, 0.12); points.material.opacity = burst.opacity; }
-        if(strands){ strands.material.color.lerp(targetColor, 0.12); strands.material.opacity = burst.opacity * 0.65; }
+        ribbons.forEach(function(ribbon){ ribbon.mesh.material.opacity = burst.opacity * ribbonOpacityScale; });
       },
       onComplete:function(){
         gsap.to(state, {
           speed:0.22,
           spread:1,
-          opacity:0.14,
+          opacity:0.42,
           duration:1.1,
           ease:'power2.out',
           onUpdate:function(){
-            if(points){ points.material.opacity = state.opacity; }
-            if(strands){ strands.material.opacity = state.opacity * 0.65; }
+            ribbons.forEach(function(ribbon){ ribbon.mesh.material.opacity = state.opacity * ribbonOpacityScale; });
           }
         });
       }
@@ -242,7 +226,7 @@
   window.tabThemeOnSwitch = tabThemeOnSwitch;
   window.tabThemeOnHome = tabThemeOnHome;
   document.addEventListener('visibilitychange', function(){
-    if(isDashboardVisible()){ startRendering(); } else { stopRendering(); }
+    if(isDashboardVisible()){ startRendering(); }else{ stopRendering(); }
   });
   window.addEventListener('resize', function(){
     clearTimeout(resizeTimer);
